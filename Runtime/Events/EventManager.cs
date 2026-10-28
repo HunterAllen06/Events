@@ -8,11 +8,12 @@ namespace HunterAllen.Events
     {
         static Dictionary<object, Delegate> _events = new();
 
-        #region Instance Events
+        #region Object Events
+        // ============================================================================== Binding ==============================================================================
         /// <summary>
-        /// Binds an Action to an Event instance.
+        /// Binds an Action to an object.
         /// </summary>
-        /// <param name="e">The instance of the event.</param>
+        /// <param name="e">The object to bind to.</param>
         /// <param name="a">The action.</param>
         public static void Bind(this object e, Action a)
         {
@@ -25,12 +26,12 @@ namespace HunterAllen.Events
             _events[e] = a;
         }
         /// <summary>
-        /// Binds an Action to an Event instance.
+        /// Binds an Action with argument <typeparamref name="Argument"/> to an object.
         /// </summary>
-        /// <param name="e">The instance of the event.</param>
+        /// <param name="e">The object to bind to.</param>
         /// <param name="a">The action.</param>
-        /// <typeparam name="T1">The type of the event instance.</typeparam>
-        public static void Bind<T>(this object e, Action<T> a)
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void Bind<Argument>(this object e, Action<Argument> a)
         {
             if (_events.TryGetValue(e, out var current))
             {
@@ -40,10 +41,12 @@ namespace HunterAllen.Events
 
             _events[e] = a;
         }
+        
+        // ============================================================================= Unbinding ===========================================================================
         /// <summary>
-        /// Unbinds an Action from an Event instance.
+        /// Unbinds an Action from an object.
         /// </summary>
-        /// <param name="e">The instance of the event.</param>
+        /// <param name="e">The object to unbind from.</param>
         /// <param name="a">The action.</param>
         public static void Unbind(this object e, Action a)
         {
@@ -63,12 +66,12 @@ namespace HunterAllen.Events
             _events.Remove(e);
         }
         /// <summary>
-        /// Unbinds an Action from an Event instance.
+        /// Unbinds an Action with argument <typeparamref name="Argument"/> from an object.
         /// </summary>
-        /// <param name="e">The instance of the event.</param>
+        /// <param name="e">The object to unbind from.</param>
         /// <param name="a">The action.</param>
-        /// <typeparam name="T1">The type of the event instance.</typeparam>
-        public static void Unbind<T>(this object e, Action<T> a)
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void Unbind<Argument>(this object e, Action<Argument> a)
         {
             if (!_events.TryGetValue(e, out var action))
             {
@@ -85,10 +88,12 @@ namespace HunterAllen.Events
 
             _events.Remove(e);
         }
+        
+        // ============================================================================== Raising ============================================================================
         /// <summary>
-        /// Raises an Event via instance.
+        /// Raises an Event via object.
         /// </summary>
-        /// <param name="e">The instance of the event.</param>
+        /// <param name="e">The object binded to the event.</param>
         public static void Raise(this object e)
         {
             if (_events.TryGetValue(e, out var a))
@@ -97,28 +102,29 @@ namespace HunterAllen.Events
             }
         }
         /// <summary>
-        /// Raises an Event via instance.
+        /// Raises an Event with argument <typeparamref name="Argument"/> via object.
         /// </summary>
-        /// <param name="e">The instance of the event.</param>
-        /// <typeparam name="T1">The type of the event instance.</typeparam>
-        public static void Raise<T>(this object e, T arg)
+        /// <param name="e">The object binded to the event.</param>
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void Raise<Argument>(this object e, Argument arg)
         {
             if (_events.TryGetValue(e, out var a))
             {
-                ((Action<T>)a)?.Invoke(arg);
+                ((Action<Argument>)a)?.Invoke(arg);
             }
         }
         #endregion
 
         #region Type Events
+        // ============================================================================== Binding ==============================================================================
         /// <summary>
         /// Binds an Action to an Event.
         /// </summary>
-        /// <param name="e">The event.</param>
         /// <param name="a">The action.</param>
-        public static void TBind<T>(Action a) where T : IEvent
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        public static void TBind<EventType>(Action a) where EventType : IEvent
         {
-            var type = typeof(T);
+            var type = typeof(EventType);
 
             if (_events.TryGetValue(type, out var current))
             {
@@ -129,13 +135,33 @@ namespace HunterAllen.Events
             _events[type] = a;
         }
         /// <summary>
+        /// Binds an Action with argument <typeparamref name="Argument"/> to an Event.
+        /// </summary>
+        /// <param name="a">The action.</param>
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void TBind<EventType, Argument>(Action<Argument> a) where EventType : IEvent
+        {
+            var type = typeof(EventType);
+
+            if (_events.TryGetValue(type, out var current))
+            {
+                _events[type] = Delegate.Combine(a, current);
+                return;
+            }
+
+            _events[type] = a;
+        }
+        // ============================================================================ Extensions ==============================================================================
+        /// <summary>
         /// Binds an Action to an Event.
         /// </summary>
         /// <param name="e">The event.</param>
         /// <param name="a">The action.</param>
-        public static void TBind<T>(this T e, Action a) where T : IEvent
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        public static void TBind<EventType>(this EventType e, Action a) where EventType : IEvent
         {
-            var type = typeof(T);
+            var type = typeof(EventType);
 
             if (_events.TryGetValue(type, out var current))
             {
@@ -146,11 +172,13 @@ namespace HunterAllen.Events
             _events[type] = a;
         }
         /// <summary>
-        /// Binds an Action to an Event.
+        /// Binds an Action with argument <typeparamref name="Argument"/> to an Event.
         /// </summary>
         /// <param name="e">The event.</param>
         /// <param name="a">The action.</param>
-        public static void TBind<T>(this object e, Action<T> a) where T : IEvent
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void TBind<EventType, Argument>(this EventType e, Action<Argument> a) where EventType : IEvent
         {
             var type = e.GetType();
 
@@ -162,31 +190,16 @@ namespace HunterAllen.Events
 
             _events[type] = a;
         }
-        /// <summary>
-        /// Binds an Action to an Event.
-        /// </summary>
-        /// <param name="e">The event.</param>
-        /// <param name="a">The action.</param>
-        public static void TBind<T1, T2>(Action<T2> a) where T1 : IEvent
-        {
-            var type = typeof(T1);
 
-            if (_events.TryGetValue(type, out var current))
-            {
-                _events[type] = Delegate.Combine(a, current);
-                return;
-            }
-
-            _events[type] = a;
-        }
+        // ============================================================================= Unbinding ===========================================================================
         /// <summary>
         /// Unbinds an Action from an Event.
         /// </summary>
-        /// <param name="e">The event.</param>
         /// <param name="a">The action.</param>
-        public static void TUnbind<T>(Action a) where T : IEvent
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        public static void TUnbind<EventType>(Action a) where EventType : IEvent
         {
-            var type = typeof(T);
+            var type = typeof(EventType);
 
             if (!_events.TryGetValue(type, out var action))
             {
@@ -204,13 +217,41 @@ namespace HunterAllen.Events
             _events.Remove(type);
         }
         /// <summary>
+        /// Unbinds an Action with argument <typeparamref name="Argument"/> from an Event.
+        /// </summary>
+        /// <param name="e">The event.</param>
+        /// <param name="a">The action.</param>
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void TUnbind<EventType, Argument>(Action<Argument> a) where EventType : IEvent
+        {
+            var type = typeof(EventType);
+
+            if (!_events.TryGetValue(type, out var action))
+            {
+                return;
+            }
+
+            var current = Delegate.Remove(action, a);
+
+            if (current != null)
+            {
+                _events[type] = current;
+                return;
+            }
+
+            _events.Remove(type);
+        }
+        // ============================================================================ Extensions ==============================================================================
+        /// <summary>
         /// Unbinds an Action from an Event.
         /// </summary>
         /// <param name="e">The event.</param>
         /// <param name="a">The action.</param>
-        public static void TUnbind<T>(this T e, Action a) where T : IEvent
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        public static void TUnbind<EventType>(this EventType e, Action a) where EventType : IEvent
         {
-            var type = typeof(T);
+            var type = typeof(EventType);
 
             if (!_events.TryGetValue(type, out var action))
             {
@@ -228,11 +269,13 @@ namespace HunterAllen.Events
             _events.Remove(type);
         }
         /// <summary>
-        /// Unbinds an Action from an Event.
+        /// Unbinds an Action with argument <typeparamref name="Argument"/> from an Event.
         /// </summary>
         /// <param name="e">The event.</param>
         /// <param name="a">The action.</param>
-        public static void TUnbind<T>(this object e, Action<T> a) where T : IEvent
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void TUnbind<EventType, Argument>(this EventType e, Action<Argument> a) where EventType : IEvent
         {
             var type = e.GetType();
 
@@ -251,77 +294,59 @@ namespace HunterAllen.Events
 
             _events.Remove(type);
         }
+
+        // ============================================================================== Raising ============================================================================
         /// <summary>
-        /// Unbinds an Action from an Event.
+        /// Raises an Event.
+        /// </summary>
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        public static void TRaise<EventType>() where EventType : IEvent
+        {
+            var type = typeof(EventType);
+            if (_events.TryGetValue(type, out var a))
+            {
+                ((Action)a)?.Invoke();
+            }
+        }
+        /// <summary>
+        /// Raises an Event with argument <typeparamref name="Argument"/>.
+        /// </summary>
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void TRaise<EventType, Argument>(Argument arg) where EventType : IEvent
+        {
+            var type = typeof(EventType);
+            if (_events.TryGetValue(type, out var a))
+            {
+                ((Action<Argument>)a)?.Invoke(arg);
+            }
+        }
+        // ============================================================================ Extensions ==============================================================================
+        /// <summary>
+        /// Raises an Event.
         /// </summary>
         /// <param name="e">The event.</param>
-        /// <param name="a">The action.</param>
-        public static void TUnbind<T1, T2>(Action<T2> a) where T1 : IEvent
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        public static void TRaise<EventType>(this EventType e) where EventType : IEvent
         {
-            var type = typeof(T1);
-
-            if (!_events.TryGetValue(type, out var action))
-            {
-                return;
-            }
-
-            var current = Delegate.Remove(action, a);
-
-            if (current != null)
-            {
-                _events[type] = current;
-                return;
-            }
-
-            _events.Remove(type);
-        }
-        /// <summary>
-        /// Raises an Event.
-        /// </summary>
-        /// <param name="e">The instance of the event.</param>
-        public static void TRaise<T>() where T : IEvent
-        {
-            var type = typeof(T);
+            var type = typeof(EventType);
             if (_events.TryGetValue(type, out var a))
             {
                 ((Action)a)?.Invoke();
             }
         }
         /// <summary>
-        /// Raises an Event.
+        /// Raises an Event with argument <typeparamref name="Argument"/>.
         /// </summary>
-        /// <param name="e">The instance of the event.</param>
-        public static void TRaise<T>(this T e) where T : IEvent
+        /// <param name="e">The object binded to the event.</param>
+        /// <typeparam name="EventType">Type of the event.</typeparam>
+        /// <typeparam name="Argument">Type of the argument.</typeparam>
+        public static void TRaise<EventType, Argument>(this EventType e, Argument arg) where EventType : IEvent
         {
-            var type = typeof(T);
+            var type = typeof(EventType);
             if (_events.TryGetValue(type, out var a))
             {
-                ((Action)a)?.Invoke();
-            }
-        }
-        /// <summary>
-        /// Raises an Event.
-        /// </summary>
-        /// <param name="e">The instance of the event.</param>
-        /// <typeparam name="T1">The type of the event instance.</typeparam>
-        public static void TRaise<T1, T2>(this T1 e, T2 arg) where T1 : IEvent
-        {
-            var type = typeof(T1);
-            if (_events.TryGetValue(type, out var a))
-            {
-                ((Action<T2>)a)?.Invoke(arg);
-            }
-        }
-        /// <summary>
-        /// Raises an Event.
-        /// </summary>
-        /// <typeparam name="T1">The type of the event instance.</typeparam>
-        public static void TRaise<T1, T2>(T2 arg) where T1 : IEvent
-        {
-            var type = typeof(T1);
-            if (_events.TryGetValue(type, out var a))
-            {
-                ((Action<T2>)a)?.Invoke(arg);
+                ((Action<Argument>)a)?.Invoke(arg);
             }
         }
         #endregion
@@ -348,7 +373,7 @@ namespace HunterAllen.Events
         /// </summary>
         /// <param name="s">The Event Channel.</param>
         /// <param name="a">The action.</param>
-        public static void SBind<T>(string s, Action<T> a)
+        public static void SBind<Argument>(string s, Action<Argument> a)
         {
             if (_events.TryGetValue(s, out var current))
             {
@@ -385,7 +410,7 @@ namespace HunterAllen.Events
         /// </summary>
         /// <param name="s">The Event Channel.</param>
         /// <param name="a">The action.</param>
-        public static void SUnbind<T>(string s, Action<T> a)
+        public static void SUnbind<Argument>(string s, Action<Argument> a)
         {
             if (!_events.TryGetValue(s, out var action))
             {
@@ -417,11 +442,11 @@ namespace HunterAllen.Events
         /// Raises an Event Channel.
         /// </summary>
         /// <param name="s">The Event Channel.</param>
-        public static void SRaise<T>(string s, T t)
+        public static void SRaise<Argument>(string s, Argument t)
         {
             if (_events.TryGetValue(s, out var a))
             {
-                ((Action<T>)a)?.Invoke(t);
+                ((Action<Argument>)a)?.Invoke(t);
             }
         }
         */
